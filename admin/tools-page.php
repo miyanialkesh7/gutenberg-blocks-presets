@@ -35,8 +35,13 @@ if (
 		case 'migrate_old_blocks':
 			$migrated = gbp_migrate_old_blocks();
 			if ( false !== $migrated ) {
-				/* translators: %d: Number of migrated block presets. */
-				echo '<div class="notice notice-success"><p>' . esc_html( sprintf( __( 'Successfully migrated %d block presets from old format.', 'gutenberg-blocks-presets' ), $migrated ) ) . '</p></div>';
+				echo '<div class="notice notice-success"><p>' . esc_html(
+					sprintf(
+						/* translators: %d: Number of migrated block presets. */
+						_n( 'Successfully migrated %d block preset from old format.', 'Successfully migrated %d block presets from old format.', $migrated, 'gutenberg-blocks-presets' ),
+						$migrated
+					)
+				) . '</p></div>';
 			} else {
 				echo '<div class="notice notice-error"><p>' . esc_html( __( 'Migration failed. Please check error logs.', 'gutenberg-blocks-presets' ) ) . '</p></div>';
 			}

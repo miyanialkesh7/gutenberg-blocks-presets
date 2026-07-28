@@ -59,6 +59,10 @@ class GBP_Gutenberg_Blocks {
 
 		wp_register_script( $handle, $src, $deps, GBP_VERSION, true );
 
+		// Without this, the wp.i18n.__() calls in block-preset.js have no translation
+		// catalog to draw from and always render the English source strings.
+		wp_set_script_translations( $handle, 'gutenberg-blocks-presets', GBP_PLUGIN_DIR . 'languages' );
+
 		// Register block type (dynamic)
 		register_block_type(
 			'gbp/block-preset',

@@ -239,8 +239,12 @@ class GBP_Admin {
 					'ajax_url' => esc_url( admin_url( 'admin-ajax.php' ) ),
 					'nonce'    => wp_create_nonce( 'gbp_admin_nonce' ),
 					'strings'  => array(
-						'confirm_delete' => __( 'Are you sure you want to delete this item?', 'gutenberg-blocks-presets' ),
-						'processing'     => __( 'Processing...', 'gutenberg-blocks-presets' ),
+						'confirm_delete'     => __( 'Are you sure you want to delete this item?', 'gutenberg-blocks-presets' ),
+						'processing'         => __( 'Processing...', 'gutenberg-blocks-presets' ),
+						'loading'            => __( 'Loading...', 'gutenberg-blocks-presets' ),
+						'preview_failed'     => __( 'Preview failed to load.', 'gutenberg-blocks-presets' ),
+						'confirm_duplicate'  => __( 'Duplicate this block preset?', 'gutenberg-blocks-presets' ),
+						'duplication_failed' => __( 'Duplication failed.', 'gutenberg-blocks-presets' ),
 					),
 				)
 			);

@@ -110,6 +110,11 @@ Go to Settings > Blocks Presets and modify the "ACF Block Folders" setting to sp
 * Security: removed a duplicate, conflicting registration of the plugin settings that had silently dropped path-safety validation on the ACF block folders setting
 * Fix: resolved a fatal error that occurred whenever `gbp_render_block_preset()`, `do_cpt_block()`, or related helper functions were called from a theme
 * Fix: resolved a fatal error on `plugins_loaded` caused by a missing text domain loader
+* Fix: resolved a fatal error on activation caused by `register_activation_hook()`/`register_deactivation_hook()` being registered too late; plugin settings and the usage-tracking table are now correctly created on activation
+* Fix: the `[gbp_block]` and `[block_preset]` shortcodes now actually register and render (they previously never worked)
+* Fix: the Tools page "Export Block Presets" action now produces a valid downloadable JSON file instead of a broken response
+* i18n: the block editor script's translatable strings are now loaded via `wp_set_script_translations()`, so they can actually be translated
+* i18n: added missing localized strings for the admin JS, and switched a count-based message to use proper singular/plural forms
 * Hardened nonce verification, redirects, and JSON output across the admin screens
 * Updated "Tested up to" to WordPress 7.0
 * Full WordPress Coding Standards (WPCS) compliance pass
