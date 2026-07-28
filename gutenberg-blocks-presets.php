@@ -73,10 +73,6 @@ class Gutenberg_Blocks_Presets {
 	 * Initialize hooks
 	 */
 	private function init_hooks() {
-		// Activation and deactivation hooks
-		register_activation_hook( GBP_PLUGIN_FILE, array( $this, 'activate' ) );
-		register_deactivation_hook( GBP_PLUGIN_FILE, array( $this, 'deactivate' ) );
-
 		// Initialize plugin
 		add_action( 'init', array( $this, 'init' ) );
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
@@ -98,6 +94,7 @@ class Gutenberg_Blocks_Presets {
 		require_once GBP_PLUGIN_DIR . 'includes/class-gbp-post-types.php';
 		require_once GBP_PLUGIN_DIR . 'includes/class-gbp-acf-blocks.php';
 		require_once GBP_PLUGIN_DIR . 'includes/class-gbp-helper-functions.php';
+		require_once GBP_PLUGIN_DIR . 'includes/gbp-tools-functions.php';
 		require_once GBP_PLUGIN_DIR . 'includes/class-gbp-admin.php';
 		require_once GBP_PLUGIN_DIR . 'includes/class-gbp-gutenberg-blocks.php';
 	}
@@ -247,7 +244,34 @@ class Gutenberg_Blocks_Presets {
 		</div>
 		<?php
 	}
+
+	/**
+	 * Static entry point for the activation hook
+	 *
+	 * Must be reachable without waiting for 'plugins_loaded': by the time WordPress fires the
+	 * "activate_{$plugin}" hook during activation, 'plugins_loaded' has already completed for
+	 * that request, so a callback registered only inside the plugins_loaded-deferred singleton
+	 * would never run. See the top-level register_activation_hook() call below.
+	 */
+	public static function run_activation() {
+		self::get_instance()->activate();
+	}
+
+	/**
+	 * Static entry point for the deactivation hook
+	 *
+	 * Same reasoning as run_activation() above.
+	 */
+	public static function run_deactivation() {
+		self::get_instance()->deactivate();
+	}
 }
+
+// Activation and deactivation hooks must be registered unconditionally, every time this file
+// loads - not deferred behind 'plugins_loaded' - otherwise WordPress won't see them in time
+// when it fires the activation/deactivation hooks.
+register_activation_hook( GBP_PLUGIN_FILE, array( 'Gutenberg_Blocks_Presets', 'run_activation' ) );
+register_deactivation_hook( GBP_PLUGIN_FILE, array( 'Gutenberg_Blocks_Presets', 'run_deactivation' ) );
 
 // Start the plugin after all plugins are loaded
 add_action(

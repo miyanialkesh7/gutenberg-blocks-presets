@@ -39,6 +39,9 @@ class GBP_Admin {
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_admin_menus' ) );
 		add_action( 'admin_init', array( $this, 'admin_init' ) );
+		// Must run on admin_init (before any admin page HTML is output) since it can send
+		// file-download headers; see maybe_export_presets() for details.
+		add_action( 'admin_init', array( $this, 'maybe_export_presets' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_scripts' ) );
 		add_action( 'add_meta_boxes', array( $this, 'add_meta_boxes' ) );
 		add_action( 'save_post', array( $this, 'save_meta_boxes' ) );
@@ -90,6 +93,38 @@ class GBP_Admin {
 			'gutenberg-blocks-presets',
 			array( $this, 'settings_page' )
 		);
+	}
+
+	/**
+	 * Handle the Tools page "Export Block Presets" action, if requested
+	 *
+	 * Sends the export as a downloadable JSON file, so it must run before WordPress
+	 * outputs any admin page HTML - which has already started by the time the Tools
+	 * page's own render callback runs. Hooking this to 'admin_init' instead (which
+	 * fires before that output begins) is what makes a clean file download possible.
+	 */
+	public function maybe_export_presets() {
+		if (
+			! isset( $_POST['gbp_action'], $_POST['gbp_nonce'] )
+			|| 'export_presets' !== $_POST['gbp_action']
+			|| ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['gbp_nonce'] ) ), 'gbp_tools_action' )
+			|| ! current_user_can( 'manage_options' )
+		) {
+			return;
+		}
+
+		$export_data = gbp_export_presets();
+
+		if ( ! $export_data ) {
+			return;
+		}
+
+		$filename = 'gbp-block-presets-' . gmdate( 'Y-m-d-H-i-s' ) . '.json';
+		nocache_headers();
+		header( 'Content-Type: application/json' );
+		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		echo wp_json_encode( $export_data, JSON_PRETTY_PRINT );
+		exit;
 	}
 
 	/**

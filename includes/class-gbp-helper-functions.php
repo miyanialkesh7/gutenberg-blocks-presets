@@ -40,10 +40,13 @@ class GBP_Helper_Functions {
 		// Make global functions available
 		$this->define_global_functions();
 
-		// Add shortcodes
-		add_action( 'init', array( $this, 'register_shortcodes' ) );
+		// Register shortcodes directly rather than via add_action( 'init', ... ): this class is
+		// only ever instantiated from Gutenberg_Blocks_Presets::init(), which is itself already
+		// running as an 'init' callback. Re-hooking to the currently-executing 'init' pass is
+		// not reliably picked up, which previously left the shortcodes unregistered.
+		$this->register_shortcodes();
 
-		// Add REST API endpoints
+		// Add REST API endpoints.
 		add_action( 'rest_api_init', array( $this, 'register_rest_endpoints' ) );
 	}
 
