@@ -10,70 +10,80 @@
  */
 
 // If uninstall not called from WordPress, exit
-if (!defined('WP_UNINSTALL_PLUGIN')) {
-    exit;
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit;
 }
 
 /**
  * Remove all plugin data
  */
 function gbp_uninstall_cleanup() {
-    global $wpdb;
+	global $wpdb;
 
-    // Delete all block preset posts
-    $posts = get_posts(array(
-        'post_type' => 'gbp_block_preset',
-        'numberposts' => -1,
-        'post_status' => 'any'
-    ));
+	// Delete all block preset posts
+	$posts = get_posts(
+		array(
+			'post_type'   => 'gbp_block_preset',
+			'numberposts' => -1,
+			'post_status' => 'any',
+		)
+	);
 
-    foreach ($posts as $post) {
-        // Delete post meta
-        $wpdb->delete($wpdb->postmeta, array('post_id' => $post->ID));
-        
-        // Delete the post
-        wp_delete_post($post->ID, true);
-    }
+	foreach ( $posts as $post ) {
+		// Force-deleting a post also removes its post meta, so no separate meta cleanup is needed.
+		wp_delete_post( $post->ID, true );
+	}
 
-    // Delete custom taxonomies terms
-    $taxonomies = array('gbp_block_category', 'gbp_block_tag');
-    foreach ($taxonomies as $taxonomy) {
-        $terms = get_terms(array(
-            'taxonomy' => $taxonomy,
-            'hide_empty' => false
-        ));
-        
-        foreach ($terms as $term) {
-            wp_delete_term($term->term_id, $taxonomy);
-        }
-    }
+	// Delete custom taxonomy terms.
+	$taxonomies = array( 'gbp_block_category', 'gbp_block_tag' );
+	foreach ( $taxonomies as $taxonomy ) {
+		$terms = get_terms(
+			array(
+				'taxonomy'   => $taxonomy,
+				'hide_empty' => false,
+			)
+		);
 
-    // Delete plugin options
-    delete_option('gbp_settings');
-    delete_option('gbp_version');
-    delete_option('gbp_activation_date');
+		if ( ! is_wp_error( $terms ) ) {
+			foreach ( $terms as $term ) {
+				wp_delete_term( $term->term_id, $taxonomy );
+			}
+		}
+	}
 
-    // Delete transients
-    delete_transient('gbp_block_cache');
-    delete_transient('gbp_usage_stats');
+	// Delete plugin options
+	delete_option( 'gbp_settings' );
+	delete_option( 'gbp_version' );
+	delete_option( 'gbp_activation_date' );
 
-    // Delete custom database tables
-    $table_name = $wpdb->prefix . 'gbp_block_usage';
-    $wpdb->query("DROP TABLE IF EXISTS $table_name");
+	// Delete transients
+	delete_transient( 'gbp_block_cache' );
+	delete_transient( 'gbp_usage_stats' );
 
-    // Clean up any remaining meta keys
-    $wpdb->query("DELETE FROM $wpdb->postmeta WHERE meta_key LIKE '_gbp_%'");
-    $wpdb->query("DELETE FROM $wpdb->postmeta WHERE meta_key LIKE 'gbp_%'");
+	// Delete the custom database table.
+	// Table name is built from $wpdb->prefix (not user input), so it is safe to interpolate;
+	// $wpdb->prepare() does not support table/column identifiers as placeholders.
+	$table_name = $wpdb->prefix . 'gbp_block_usage';
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange
+	$wpdb->query( "DROP TABLE IF EXISTS $table_name" );
 
-    // Clean up user meta (if any)
-    $wpdb->query("DELETE FROM $wpdb->usermeta WHERE meta_key LIKE '_gbp_%'");
-    $wpdb->query("DELETE FROM $wpdb->usermeta WHERE meta_key LIKE 'gbp_%'");
+	// Clean up any remaining meta keys
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key LIKE %s", $wpdb->esc_like( '_gbp_' ) . '%' ) );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->postmeta WHERE meta_key LIKE %s", $wpdb->esc_like( 'gbp_' ) . '%' ) );
 
-    // Flush rewrite rules
-    flush_rewrite_rules();
+	// Clean up user meta (if any)
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key LIKE %s", $wpdb->esc_like( '_gbp_' ) . '%' ) );
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+	$wpdb->query( $wpdb->prepare( "DELETE FROM $wpdb->usermeta WHERE meta_key LIKE %s", $wpdb->esc_like( 'gbp_' ) . '%' ) );
 
-    // Clear any cached data
-    wp_cache_flush();
+	// Flush rewrite rules
+	flush_rewrite_rules();
+
+	// Clear any cached data
+	wp_cache_flush();
 }
 
 // Execute cleanup
@@ -82,6 +92,7 @@ gbp_uninstall_cleanup();
 /**
  * Log uninstall event (optional - for debugging)
  */
-if (defined('WP_DEBUG') && WP_DEBUG) {
-    error_log('Gutenberg Blocks Presets plugin has been uninstalled and all data removed.');
+if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+	// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+	error_log( 'Gutenberg Blocks Presets plugin has been uninstalled and all data removed.' );
 }

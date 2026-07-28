@@ -82,7 +82,8 @@ var GBP_Admin = {
         $('.gbp-help-tip').on('mouseenter', function() {
             var tip = $(this).data('tip');
             if (tip) {
-                $('<div class="gbp-tooltip">' + tip + '</div>')
+                $('<div class="gbp-tooltip"></div>')
+                    .text(tip)
                     .appendTo('body')
                     .fadeIn('fast');
             }

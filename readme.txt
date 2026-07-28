@@ -2,9 +2,9 @@
 Contributors: davet86
 Tags: gutenberg, blocks, presets, reusable, native
 Requires at least: 5.9
-Tested up to: 6.8
+Tested up to: 7.0
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 Text Domain: gutenberg-blocks-presets
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,6 +105,16 @@ Go to Settings > Blocks Presets and modify the "ACF Block Folders" setting to sp
 
 == Changelog ==
 
+= 1.0.1 =
+* Security: REST API endpoint for a single block preset no longer exposes draft/private/trashed presets to unauthenticated requests
+* Security: removed a duplicate, conflicting registration of the plugin settings that had silently dropped path-safety validation on the ACF block folders setting
+* Fix: resolved a fatal error that occurred whenever `gbp_render_block_preset()`, `do_cpt_block()`, or related helper functions were called from a theme
+* Fix: resolved a fatal error on `plugins_loaded` caused by a missing text domain loader
+* Hardened nonce verification, redirects, and JSON output across the admin screens
+* Updated "Tested up to" to WordPress 7.0
+* Full WordPress Coding Standards (WPCS) compliance pass
+* Removed unused legacy admin code superseded by the current settings screen
+
 = 1.0.0 =
 * Initial release
 * Custom post type for block presets
@@ -119,6 +129,9 @@ Go to Settings > Blocks Presets and modify the "ACF Block Folders" setting to sp
 
 == Upgrade Notice ==
 
+= 1.0.1 =
+Security and stability update: fixes two fatal-error bugs and closes a settings-validation gap. Upgrade is recommended for all users.
+
 = 1.0.0 =
 Initial release of Gutenberg Blocks Presets. If you're migrating from a custom implementation, use the migration tools in Block Presets > Tools.
 
@@ -130,13 +143,6 @@ The plugin provides numerous hooks for customization:
 
 Filters:
 - `gbp_block_preset_content` - Filter block preset output
-- `gbp_settings_defaults` - Modify default settings
-- `gbp_acf_block_args` - Customize ACF block registration arguments
-
-Actions:
-- `gbp_before_render_block` - Fired before rendering a block preset
-- `gbp_after_render_block` - Fired after rendering a block preset
-- `gbp_block_usage_tracked` - Fired when usage is tracked
 
 = REST API Endpoints =
 
@@ -150,7 +156,7 @@ Actions:
     ├── gutenberg-blocks-presets.php
     ├── uninstall.php
     ├── readme.txt
-    ├── license.txt
+    ├── LICENSE
     ├── languages/
     │   └── index.php
     ├── assets/
@@ -159,6 +165,7 @@ Actions:
     ├── includes/
     │   ├── class-gbp-post-types.php
     │   ├── class-gbp-acf-blocks.php
+    │   ├── class-gbp-gutenberg-blocks.php
     │   ├── class-gbp-helper-functions.php
     │   └── class-gbp-admin.php
     └── admin/

@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<ruleset name="Gutenberg Blocks Presets">
+	<description>PHPCS ruleset for the Gutenberg Blocks Presets plugin.</description>
+
+	<file>.</file>
+	<exclude-pattern>/languages/*</exclude-pattern>
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+
+	<arg value="sp"/>
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+
+	<rule ref="WordPress">
+		<!--
+			The main plugin bootstrap file must keep the plugin-slug filename
+			(gutenberg-blocks-presets.php) so WordPress can detect the plugin
+			header; it cannot be renamed to class-gutenberg-blocks-presets.php.
+		-->
+		<exclude name="WordPress.Files.FileName.InvalidClassFileName"/>
+		<!--
+			Project convention: inline comments and @param descriptions are not
+			required to end in a full stop. Not treated as a style violation here.
+		-->
+		<exclude name="Squiz.Commenting.InlineComment.InvalidEndChar"/>
+		<exclude name="Squiz.Commenting.FunctionComment.ParamCommentFullStop"/>
+	</rule>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="gutenberg-blocks-presets"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="gbp_"/>
+				<element value="GBP_"/>
+				<element value="Gutenberg_Blocks_Presets"/>
+			</property>
+		</properties>
+	</rule>
+
+	<config name="minimum_supported_wp_version" value="5.9"/>
+</ruleset>
