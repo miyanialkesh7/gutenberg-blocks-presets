@@ -11,41 +11,12 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-global $wpdb;
-$table_name = $wpdb->prefix . 'gbp_block_usage';
-
-// Get overall statistics
+// Get overall statistics with caching
 $total_presets = wp_count_posts('gbp_block_preset')->publish;
-$total_usage = $wpdb->get_var("SELECT SUM(usage_count) FROM $table_name");
-$most_used = $wpdb->get_results("
-    SELECT p.ID, p.post_title, SUM(u.usage_count) as total_usage 
-    FROM {$wpdb->posts} p 
-    LEFT JOIN $table_name u ON p.ID = u.block_id 
-    WHERE p.post_type = 'gbp_block_preset' AND p.post_status = 'publish'
-    GROUP BY p.ID 
-    ORDER BY total_usage DESC 
-    LIMIT 10
-");
-
-$unused_presets = $wpdb->get_results("
-    SELECT p.ID, p.post_title 
-    FROM {$wpdb->posts} p 
-    LEFT JOIN $table_name u ON p.ID = u.block_id 
-    WHERE p.post_type = 'gbp_block_preset' 
-    AND p.post_status = 'publish' 
-    AND u.block_id IS NULL 
-    ORDER BY p.post_title ASC
-");
-
-// Get recent usage
-$recent_usage = $wpdb->get_results("
-    SELECT p.post_title as block_title, p2.post_title as used_on, u.last_used, u.usage_count
-    FROM $table_name u
-    LEFT JOIN {$wpdb->posts} p ON u.block_id = p.ID
-    LEFT JOIN {$wpdb->posts} p2 ON u.post_id = p2.ID
-    ORDER BY u.last_used DESC
-    LIMIT 20
-");
+$total_usage = gbp_get_total_usage_cached();
+$most_used = gbp_get_most_used_presets_cached();
+$unused_presets = gbp_get_unused_presets_cached();
+$recent_usage = gbp_get_recent_usage_cached();
 
 ?>
 
@@ -195,13 +166,7 @@ $recent_usage = $wpdb->get_results("
             
             <?php
             // Get usage by month for the last 12 months
-            $monthly_usage = $wpdb->get_results("
-                SELECT DATE_FORMAT(last_used, '%Y-%m') as month, SUM(usage_count) as total_usage
-                FROM $table_name
-                WHERE last_used >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
-                GROUP BY DATE_FORMAT(last_used, '%Y-%m')
-                ORDER BY month ASC
-            ");
+            $monthly_usage = gbp_get_monthly_usage_cached();
             
             if (!empty($monthly_usage)):
             ?>
@@ -253,3 +218,144 @@ $recent_usage = $wpdb->get_results("
         
     </div>
 </div>
+
+<?php
+/**
+ * Helper functions for statistics with caching
+ */
+
+/**
+ * Get total usage count with caching
+ */
+function gbp_get_total_usage_cached() {
+    $cache_key = 'gbp_total_usage';
+    $total_usage = wp_cache_get($cache_key, 'gbp_statistics');
+    
+    if (false === $total_usage) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'gbp_block_usage';
+        $total_usage = $wpdb->get_var("SELECT SUM(usage_count) FROM {$table_name}");
+        
+        // Cache for 5 minutes
+        wp_cache_set($cache_key, $total_usage, 'gbp_statistics', 300);
+    }
+    
+    return $total_usage;
+}
+
+/**
+ * Get most used presets with caching
+ */
+function gbp_get_most_used_presets_cached() {
+    $cache_key = 'gbp_most_used_presets';
+    $most_used = wp_cache_get($cache_key, 'gbp_statistics');
+    
+    if (false === $most_used) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'gbp_block_usage';
+        $most_used = $wpdb->get_results("
+            SELECT p.ID, p.post_title, SUM(u.usage_count) as total_usage 
+            FROM {$wpdb->posts} p 
+            LEFT JOIN {$table_name} u ON p.ID = u.block_id 
+            WHERE p.post_type = 'gbp_block_preset' AND p.post_status = 'publish'
+            GROUP BY p.ID 
+            ORDER BY total_usage DESC 
+            LIMIT 10
+        ");
+        
+        // Cache for 10 minutes
+        wp_cache_set($cache_key, $most_used, 'gbp_statistics', 600);
+    }
+    
+    return $most_used;
+}
+
+/**
+ * Get unused presets with caching
+ */
+function gbp_get_unused_presets_cached() {
+    $cache_key = 'gbp_unused_presets';
+    $unused_presets = wp_cache_get($cache_key, 'gbp_statistics');
+    
+    if (false === $unused_presets) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'gbp_block_usage';
+        $unused_presets = $wpdb->get_results("
+            SELECT p.ID, p.post_title 
+            FROM {$wpdb->posts} p 
+            LEFT JOIN {$table_name} u ON p.ID = u.block_id 
+            WHERE p.post_type = 'gbp_block_preset' 
+            AND p.post_status = 'publish' 
+            AND u.block_id IS NULL 
+            ORDER BY p.post_title ASC
+        ");
+        
+        // Cache for 15 minutes
+        wp_cache_set($cache_key, $unused_presets, 'gbp_statistics', 900);
+    }
+    
+    return $unused_presets;
+}
+
+/**
+ * Get recent usage with caching
+ */
+function gbp_get_recent_usage_cached() {
+    $cache_key = 'gbp_recent_usage';
+    $recent_usage = wp_cache_get($cache_key, 'gbp_statistics');
+    
+    if (false === $recent_usage) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'gbp_block_usage';
+        $recent_usage = $wpdb->get_results("
+            SELECT p.post_title as block_title, p2.post_title as used_on, u.last_used, u.usage_count
+            FROM {$table_name} u
+            LEFT JOIN {$wpdb->posts} p ON u.block_id = p.ID
+            LEFT JOIN {$wpdb->posts} p2 ON u.post_id = p2.ID
+            ORDER BY u.last_used DESC
+            LIMIT 20
+        ");
+        
+        // Cache for 5 minutes
+        wp_cache_set($cache_key, $recent_usage, 'gbp_statistics', 300);
+    }
+    
+    return $recent_usage;
+}
+
+/**
+ * Get monthly usage trends with caching
+ */
+function gbp_get_monthly_usage_cached() {
+    $cache_key = 'gbp_monthly_usage';
+    $monthly_usage = wp_cache_get($cache_key, 'gbp_statistics');
+    
+    if (false === $monthly_usage) {
+        global $wpdb;
+        $table_name = $wpdb->prefix . 'gbp_block_usage';
+        $monthly_usage = $wpdb->get_results("
+            SELECT DATE_FORMAT(last_used, '%Y-%m') as month, SUM(usage_count) as total_usage
+            FROM {$table_name}
+            WHERE last_used >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+            GROUP BY DATE_FORMAT(last_used, '%Y-%m')
+            ORDER BY month ASC
+        ");
+        
+        // Cache for 1 hour
+        wp_cache_set($cache_key, $monthly_usage, 'gbp_statistics', 3600);
+    }
+    
+    return $monthly_usage;
+}
+
+/**
+ * Clear statistics cache when usage data is updated
+ */
+function gbp_clear_statistics_cache() {
+    wp_cache_delete('gbp_total_usage', 'gbp_statistics');
+    wp_cache_delete('gbp_most_used_presets', 'gbp_statistics');
+    wp_cache_delete('gbp_unused_presets', 'gbp_statistics');
+    wp_cache_delete('gbp_recent_usage', 'gbp_statistics');
+    wp_cache_delete('gbp_monthly_usage', 'gbp_statistics');
+}
+?>

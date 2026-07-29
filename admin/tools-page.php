@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Handle form submissions
-if (isset($_POST['gbp_action']) && wp_verify_nonce($_POST['gbp_nonce'], 'gbp_tools_action')) {
+if (isset($_POST['gbp_action']) && isset($_POST['gbp_nonce']) && wp_verify_nonce(wp_unslash(sanitize_text_field($_POST['gbp_nonce'])), 'gbp_tools_action')) {
     switch ($_POST['gbp_action']) {
         case 'migrate_old_blocks':
             $migrated = gbp_migrate_old_blocks();
@@ -35,7 +35,7 @@ if (isset($_POST['gbp_action']) && wp_verify_nonce($_POST['gbp_nonce'], 'gbp_too
         case 'export_presets':
             $export_data = gbp_export_presets();
             if ($export_data) {
-                $filename = 'gbp-block-presets-' . date('Y-m-d-H-i-s') . '.json';
+                $filename = 'gbp-block-presets-' . gmdate('Y-m-d-H-i-s') . '.json';
                 header('Content-Type: application/json');
                 header('Content-Disposition: attachment; filename="' . $filename . '"');
                 echo json_encode($export_data, JSON_PRETTY_PRINT);
@@ -234,7 +234,7 @@ function gbp_migrate_old_blocks() {
 function gbp_reset_usage_stats() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'gbp_block_usage';
-    return $wpdb->query("TRUNCATE TABLE $table_name") !== false;
+    return $wpdb->query($wpdb->prepare('TRUNCATE TABLE %1s', $table_name)) !== false;
 }
 
 function gbp_export_presets() {
