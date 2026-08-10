@@ -18,10 +18,40 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// Defense-in-depth: the menu registration already restricts this page to 'manage_options',
-// but verify again since these actions are destructive (data reset, migration).
-if ( ! current_user_can( 'manage_options' ) ) {
-	wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'gutenberg-blocks-presets' ) );
+// Handle form submissions
+if (isset($_POST['gbp_action']) && isset($_POST['gbp_nonce']) && wp_verify_nonce(wp_unslash(sanitize_text_field($_POST['gbp_nonce'])), 'gbp_tools_action')) {
+    switch ($_POST['gbp_action']) {
+        case 'migrate_old_blocks':
+            $migrated = gbp_migrate_old_blocks();
+            if ($migrated !== false) {
+                /* translators: %d: Number of migrated block presets */
+                echo '<div class="notice notice-success"><p>' . esc_html(sprintf(__('Successfully migrated %d block presets from old format.', 'gutenberg-blocks-presets'), $migrated)) . '</p></div>';
+            } else {
+                echo '<div class="notice notice-error"><p>' . esc_html(__('Migration failed. Please check error logs.', 'gutenberg-blocks-presets')) . '</p></div>';
+            }
+            break;
+            
+        case 'reset_usage_stats':
+            if (gbp_reset_usage_stats()) {
+                echo '<div class="notice notice-success"><p>' . esc_html(__('Usage statistics have been reset.', 'gutenberg-blocks-presets')) . '</p></div>';
+            } else {
+                echo '<div class="notice notice-error"><p>' . esc_html(__('Failed to reset usage statistics.', 'gutenberg-blocks-presets')) . '</p></div>';
+            }
+            break;
+            
+        case 'export_presets':
+            $export_data = gbp_export_presets();
+            if ($export_data) {
+                $filename = 'gbp-block-presets-' . gmdate('Y-m-d-H-i-s') . '.json';
+                header('Content-Type: application/json');
+                header('Content-Disposition: attachment; filename="' . $filename . '"');
+                echo json_encode($export_data, JSON_PRETTY_PRINT);
+                exit;
+            } else {
+                echo '<div class="notice notice-error"><p>' . esc_html(__('Export failed. No presets found.', 'gutenberg-blocks-presets')) . '</p></div>';
+            }
+            break;
+    }
 }
 
 // Handle form submissions
@@ -61,12 +91,10 @@ if (
 	}
 }
 
-// A failed export (no presets to export) can't render its own notice - maybe_export_presets()
-// runs on 'admin_init' and exits before this template ever loads on success, so it leaves a
-// transient behind for us to pick up here instead.
-if ( get_transient( 'gbp_export_error' ) ) {
-	delete_transient( 'gbp_export_error' );
-	echo '<div class="notice notice-error"><p>' . esc_html__( 'Export failed. No presets found.', 'gutenberg-blocks-presets' ) . '</p></div>';
+function gbp_reset_usage_stats() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'gbp_block_usage';
+    return $wpdb->query($wpdb->prepare('TRUNCATE TABLE %1s', $table_name)) !== false;
 }
 
 // Check for old block posts
