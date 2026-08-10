@@ -61,6 +61,14 @@ if (
 	}
 }
 
+// A failed export (no presets to export) can't render its own notice - maybe_export_presets()
+// runs on 'admin_init' and exits before this template ever loads on success, so it leaves a
+// transient behind for us to pick up here instead.
+if ( get_transient( 'gbp_export_error' ) ) {
+	delete_transient( 'gbp_export_error' );
+	echo '<div class="notice notice-error"><p>' . esc_html__( 'Export failed. No presets found.', 'gutenberg-blocks-presets' ) . '</p></div>';
+}
+
 // Check for old block posts
 $old_blocks = get_posts(
 	array(

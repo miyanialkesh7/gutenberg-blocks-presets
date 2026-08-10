@@ -168,7 +168,7 @@ $recent_usage = $wpdb->get_results(
 										sprintf(
 											/* translators: %s: Human-readable time difference, e.g. "2 hours". */
 											__( '%s ago', 'gutenberg-blocks-presets' ),
-											human_time_diff( strtotime( $usage->last_used ), time() )
+											human_time_diff( strtotime( get_gmt_from_date( $usage->last_used ) ), time() )
 										)
 									);
 									?>

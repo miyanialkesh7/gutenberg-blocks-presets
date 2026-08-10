@@ -116,6 +116,7 @@ class GBP_Admin {
 		$export_data = gbp_export_presets();
 
 		if ( ! $export_data ) {
+			set_transient( 'gbp_export_error', 1, 30 );
 			return;
 		}
 
@@ -244,6 +245,7 @@ class GBP_Admin {
 						'loading'            => __( 'Loading...', 'gutenberg-blocks-presets' ),
 						'preview_failed'     => __( 'Preview failed to load.', 'gutenberg-blocks-presets' ),
 						'confirm_duplicate'  => __( 'Duplicate this block preset?', 'gutenberg-blocks-presets' ),
+						'invalid_path'       => __( 'Invalid path detected. Paths cannot contain "..".', 'gutenberg-blocks-presets' ),
 						'duplication_failed' => __( 'Duplication failed.', 'gutenberg-blocks-presets' ),
 					),
 				)
@@ -534,21 +536,13 @@ class GBP_Admin {
 	public function sanitize_settings( $input ) {
 		$sanitized = array();
 
-		if ( isset( $input['enable_acf_blocks'] ) ) {
-			$sanitized['enable_acf_blocks'] = (bool) $input['enable_acf_blocks'];
-		}
-
-		if ( isset( $input['enable_block_presets'] ) ) {
-			$sanitized['enable_block_presets'] = (bool) $input['enable_block_presets'];
-		}
-
-		if ( isset( $input['enable_legacy_post_type'] ) ) {
-			$sanitized['enable_legacy_post_type'] = (bool) $input['enable_legacy_post_type'];
-		}
-
-		if ( isset( $input['enable_debug_logging'] ) ) {
-			$sanitized['enable_debug_logging'] = (bool) $input['enable_debug_logging'];
-		}
+		// Checkboxes are absent from $_POST entirely when unchecked, so these must be written
+		// unconditionally - an isset() guard would drop the key (and the "off" state) rather
+		// than storing false, making the setting impossible to turn off once enabled.
+		$sanitized['enable_acf_blocks']       = ! empty( $input['enable_acf_blocks'] );
+		$sanitized['enable_block_presets']    = ! empty( $input['enable_block_presets'] );
+		$sanitized['enable_legacy_post_type'] = ! empty( $input['enable_legacy_post_type'] );
+		$sanitized['enable_debug_logging']    = ! empty( $input['enable_debug_logging'] );
 
 		if ( isset( $input['block_folders'] ) ) {
 			$folders = explode( "\n", $input['block_folders'] );
